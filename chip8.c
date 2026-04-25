@@ -17,5 +17,15 @@ uint16_t fetch(chip8_t *console){
 }
 
 instruction_t decode(uint16_t opcode){
+    instruction_t instruction;
 
+    instruction.opcode = opcode;
+    instruction.type = (opcode >> 12);
+    instruction.x = (opcode & 0x0F00) >> 8;
+    instruction.y = (opcode & 0x00F0) >> 4;
+    instruction.n = (opcode & 0x000F);
+    instruction.nn = (opcode & 0x00FF);
+    instruction.nnn = (opcode & 0x0FFF);
+
+    return instruction;
 }
