@@ -33,7 +33,7 @@ typedef struct {
     uint16_t nnn;    // Les trois derniers (0xAB1)
 } instruction_t;
 
-chip8_t init_emulator(void);
+void init_emulator(chip8_t *console);
 uint16_t fetch(chip8_t *console);
 instruction_t decode(uint16_t opcode);
 
