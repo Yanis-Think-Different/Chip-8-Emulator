@@ -2,17 +2,18 @@
 #include <assert.h>
 #include <memory.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 void init_emulator(chip8_t *console){
-    console->delay_timer = 0;
-    console->sound_timer = 0;
-    console->index_register = 0;
+    console->delay_timer = 0x0;
+    console->sound_timer = 0x0;
+    console->index_register = 0x0;
     console->program_counter = 0x0200;
-    console->pile.stack_pointer = 0;
-    memset(console->memory, 0, MEMORY_SIZE);
-    memset(console->display, 0, LARGEUR * HAUTEUR);
-    memset(console->pile.tab, 0, 16);
-    memset(console->V, 0, 16);
+    console->pile.stack_pointer = 0x0;
+    memset(console->memory, 0x0, MEMORY_SIZE);
+    memset(console->display, 0x0, LARGEUR * HAUTEUR);
+    memset(console->pile.tab, 0x0, 0x10);
+    memset(console->V, 0x0, 0x10);
 
     // Chargement de la FONT
     uint8_t font[] = {
@@ -64,123 +65,150 @@ instruction_t decode(uint16_t opcode){
     return instruction;
 }
 
-void execute(instruction_t instruction){
-    switch(instruction.type){
+void execute(instruction_t *instruction, chip8_t *console) {
+    switch(instruction->type) {
         case 0x0:
-            switch(instruction.nnn){
+            switch(instruction->nnn) {
                 case 0x0E0:
-                    //Clear the display
                     break;
                 case 0x0EE:
-                    //Return from a subroutine. The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
+                    console->program_counter = console->pile.tab[console->pile.stack_pointer];
+                    console->pile.stack_pointer--;
                     break;
                 default:
-                    //Jump to a machine code routine at nnn
                     break;
             }
             break;
         case 0x1:
-            // The interpreter sets the program counter to nnn.
+            console->program_counter = instruction->nnn;
             break;
         case 0x2:
-            // Call subroutine at nnn. The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
+            console->pile.stack_pointer++;
+            console->pile.tab[console->pile.stack_pointer] = console->program_counter;
+            console->program_counter = instruction->nnn;
             break;
         case 0x3:
-            // Skip next instruction if Vx = kk. The interpreter compares register Vx to kk, and if they are equal, increments the program counter by 2.
+            if (console->V[instruction->x] == instruction->nn)
+                console->program_counter += 0x2;
             break;
         case 0x4:
-            // Skip next instruction if Vx != kk. The interpreter compares register Vx to kk, and if they are not equal, increments the program counter by 2.
+            if (console->V[instruction->x] != instruction->nn)
+                console->program_counter += 0x2;
             break;
         case 0x5:
-            // Skip next instruction if Vx = Vy.The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
+            if ((console->V[instruction->x] == console->V[instruction->y]) && (instruction->n == 0))
+                console->program_counter += 2;
             break;
         case 0x6:
-            // Set Vx = kk. The interpreter puts the value kk into register Vx.
+            console->V[instruction->x] = instruction->nn;
             break;
         case 0x7:
-            // Set Vx = Vx + kk. Adds the value kk to the value of register Vx, then stores the result in Vx.
+            console->V[instruction->x] += instruction->nn;
             break;
         case 0x8:
-            switch (instruction.n) {
+            switch (instruction->n) {
                 case 0x0:
+                    console->V[instruction->x] = console->V[instruction->y];
                     break;
                 case 0x1:
+                    console->V[instruction->x] |= console->V[instruction->y];
                     break;
                 case 0x2:
+                    console->V[instruction->x] &= console->V[instruction->y];
                     break;
                 case 0x3:
+                    console->V[instruction->x] ^= console->V[instruction->y];
                     break;
-                case 0x4:
+                case 0x4: {
+                    uint16_t add = (uint16_t)console->V[instruction->x] + (uint16_t)console->V[instruction->y];
+                    console->V[0xF] = (add > 0xFF) ? 1 : 0;
+                    console->V[instruction->x] = (uint8_t)(add & 0xFF);
                     break;
+                }
                 case 0x5:
+                    console->V[0xF] = (console->V[instruction->x] > console->V[instruction->y]) ? 1 : 0;
+                    console->V[instruction->x] -= console->V[instruction->y];
                     break;
                 case 0x6:
+                    console->V[0xF] = console->V[instruction->x] & 0x1;
+                    console->V[instruction->x] >>= 1;
                     break;
                 case 0x7:
+                    console->V[0xF] = (console->V[instruction->y] > console->V[instruction->x]) ? 1 : 0;
+                    console->V[instruction->x] = console->V[instruction->y] - console->V[instruction->x];
                     break;
                 case 0xE:
+                    console->V[0xF] = (console->V[instruction->x] >> 7) & 0x1;
+                    console->V[instruction->x] <<= 1;
                     break;
             }
             break;
         case 0x9:
-            if (instruction.n == 0)
+            if ((console->V[instruction->x] != console->V[instruction->y]) && (instruction->n == 0))
+                console->program_counter += 2;
             break;
         case 0xA:
-            // Set I = nnn. The value of register I is set to nnn.
+            console->index_register = instruction->nnn;
             break;
         case 0xB:
-            // Jump to location nnn + V0. The program counter is set to nnn plus the value of V0.
+            console->program_counter = instruction->nnn + console->V[0x0];
             break;
         case 0xC:
-            // Set Vx = random byte AND kk. The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. The results are stored in Vx.
+            console->V[instruction->x] = (rand() % 256) & instruction->nn;
             break;
         case 0xD:
-            // lire la docu
             break;
+
         case 0xE:
-            switch(instruction.nn){
+            switch(instruction->nn) {
                 case 0x9E:
-                    // kip next instruction if key with the value of Vx is pressed.Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
                     break;
                 case 0xA1:
-                    // Skip next instruction if key with the value of Vx is not pressed.Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
-                    break;
-                default :
                     break;
             }
             break;
+
         case 0xF:
-            switch(instruction.nn){
+            switch(instruction->nn) {
                 case 0x07:
-                    // Set Vx = delay timer value. The value of DT is placed into Vx.
+                    console->V[instruction->x] = console->delay_timer;
                     break;
                 case 0x0A:
-                    // Wait for a key press, store the value of the key in Vx.  execution stops until a key is pressed, then the value of that key is stored in Vx.
+                    // Wait for a key press
                     break;
                 case 0x15:
-                    // Set delay timer = Vx. DT is set equal to the value of Vx.
+                    console->delay_timer = console->V[instruction->x];
                     break;
                 case 0x18:
-                    // Set sound timer = Vx. ST is set equal to the value of Vx.
+                    console->sound_timer = console->V[instruction->x];
                     break;
                 case 0x1E:
-                    // Set I = I + Vx. The values of I and Vx are added, and the results are stored in I.
+                    console->index_register += console->V[instruction->x];
                     break;
                 case 0x29:
-                    // Set I = location of sprite for digit Vx. The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx.
+                    console->index_register = 0x050 + console->V[instruction->x] * 5;
                     break;
-                case 0x33:
-                    // Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+                case 0x33: {
+                    uint8_t val = console->V[instruction->x];
+                    console->memory[console->index_register] = val / 100;
+                    console->memory[console->index_register + 1] = (val / 10) % 10;
+                    console->memory[console->index_register + 2] = val % 10;
                     break;
+                }
                 case 0x55:
-                    // Store registers V0 through Vx in memory starting at location I. The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+                    for (int i = 0; i <= instruction->x; i++) {
+                        console->memory[console->index_register + i] = console->V[i];
+                    }
                     break;
                 case 0x65:
-                    // Read registers V0 through Vx from memory starting at location I. The interpreter reads values from memory starting at location I into registers V0 through Vx.
+                    for (int i = 0; i <= instruction->x; i++) {
+                        console->V[i] = console->memory[console->index_register + i];
+                    }
                     break;
             }
             break;
-        default :
+
+        default:
             break;
     }
 }

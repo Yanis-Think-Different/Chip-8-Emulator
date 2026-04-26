@@ -1,6 +1,6 @@
 COBJET = main.o display.o chip8.o keypad.o
 CC = gcc
-CFLAGS = -Wall -pedantic -std=c17 -g
+CFLAGS = -Wall -pedantic -std=c23 -g
 CBIBLIO = -lSDL2
 
 emulateur8 : $(COBJET)

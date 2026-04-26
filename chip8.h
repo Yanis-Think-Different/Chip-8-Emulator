@@ -3,12 +3,12 @@
 
 #include <stdint.h>
 
-#define MEMORY_SIZE 4096
-#define LARGEUR 64
-#define HAUTEUR 32
+#define MEMORY_SIZE 0x1000
+#define LARGEUR 0x40
+#define HAUTEUR 0x20
 
 typedef struct STACK{
-    uint16_t tab[16];
+    uint16_t tab[0x10];
     uint8_t stack_pointer;
 }stack;
 
@@ -20,7 +20,7 @@ typedef struct Chip8{
     stack pile;
     uint8_t delay_timer;
     uint8_t sound_timer;
-    uint8_t V[16];
+    uint8_t V[0x10];
 }chip8_t;
 
 typedef struct {
