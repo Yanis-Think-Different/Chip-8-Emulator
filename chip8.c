@@ -126,26 +126,42 @@ void execute(instruction_t *instruction, chip8_t *console) {
                     break;
                 case 0x4: {
                     uint16_t add = (uint16_t)console->V[instruction->x] + (uint16_t)console->V[instruction->y];
+                    console->V[instruction->x] = (add & 0xFF);
                     console->V[0xF] = (add > 0xFF) ? 0x1 : 0x0;
-                    console->V[instruction->x] = (uint8_t)(add & 0xFF);
                     break;
                 }
-                case 0x5:
-                    console->V[0xF] = (console->V[instruction->x] > console->V[instruction->y]) ? 0x1 : 0x0;
-                    console->V[instruction->x] -= console->V[instruction->y];
+                case 0x5: {
+                    uint16_t Vx = console->V[instruction->x];
+                    uint16_t Vy = console->V[instruction->y];
+                    uint16_t soust = Vx - Vy;
+
+                    console->V[instruction->x] = soust;
+                    console->V[0xF] = (Vx > Vy) ? 0x1 : 0x0;
+
                     break;
-                case 0x6:
-                    console->V[0xF] = console->V[instruction->x] & 0x1;
+                }
+                case 0x6: {
+                    uint8_t tmp = (console->V[instruction->x] & 0x1U);
                     console->V[instruction->x] >>= 0x1;
+                    console->V[0xF] = tmp;
                     break;
-                case 0x7:
-                    console->V[0xF] = (console->V[instruction->y] > console->V[instruction->x]) ? 0x1 : 0x0;
-                    console->V[instruction->x] = console->V[instruction->y] - console->V[instruction->x];
+                }
+                case 0x7: {
+                    uint16_t Vx = console->V[instruction->x];
+                    uint16_t Vy = console->V[instruction->y];
+                    uint16_t soust = Vy - Vx;
+
+                    console->V[instruction->x] = soust;
+                    console->V[0xF] = (Vx < Vy) ? 0x1 : 0x0;
+
                     break;
-                case 0xE:
-                    console->V[0xF] = (console->V[instruction->x] >> 0x7) & 0x1;
+                }
+                case 0xE: {
+                    uint8_t tmp = ((console->V[instruction->x] >> 7) & 0x1U);
                     console->V[instruction->x] <<= 0x1;
+                    console->V[0xF] = tmp;
                     break;
+                }
             }
             break;
         case 0x9:
@@ -170,12 +186,14 @@ void execute(instruction_t *instruction, chip8_t *console) {
             for (uint8_t i = 0x0; i < instruction->n; i++){
                 uint8_t sprite = console->memory[console->index_register + i];
                 for (uint8_t j = 0x0; j < 0x8; j++) {
-                    uint8_t index = ((y_pos + i) * LARGEUR) + (x_pos + j);
-                    uint8_t tmp = console->display[index];
-                    console->display[index] ^= ((sprite >> (0x7-j)) & 0x1U);
-                    if (tmp){
-                        if (!console->display[index])
-                            console->V[0xF] = 0x1;
+                    if ((x_pos + j) < LARGEUR && (y_pos + i) < HAUTEUR){
+                        uint16_t index = ((y_pos + i) * LARGEUR) + (x_pos + j);
+                        uint8_t tmp = console->display[index];
+                        console->display[index] ^= ((sprite >> (0x7-j)) & 0x1U);
+                        if (tmp){
+                            if (!console->display[index])
+                                console->V[0xF] = 0x1;
+                        }
                     }
                 }
             }
