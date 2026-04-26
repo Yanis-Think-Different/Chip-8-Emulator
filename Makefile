@@ -9,16 +9,10 @@ emulateur8 : $(COBJET)
 test : test.o chip8.o
 	$(CC) $(CFLAGS) test.o chip8.o -o test
 
-display.o : display.c display.h chip8.h
-	$(CC) $(CFLAGS) -c display.c -o display.o
-
 chip8.o : chip8.c chip8.h
 	$(CC) $(CFLAGS) -c chip8.c -o chip8.o
 
-keypad.o : keypad.c keypad.h chip8.h
-	$(CC) $(CFLAGS) -c keypad.c -o keypad.o
-
-main.o : main.c keypad.h chip8.h display.h
+main.o : main.c chip8.h
 	$(CC) $(CFLAGS) -c main.c -o main.o
 
 test.o : test.c chip8.h

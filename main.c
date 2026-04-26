@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define SCALE 10
+
 int main(void){
 
     SDL_Window* window = NULL;
@@ -17,7 +19,7 @@ int main(void){
 		return 1;
 	}
 
-	window = SDL_CreateWindow("Simulateur", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, LARGEUR, HAUTEUR, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow("Simulateur", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, LARGEUR*SCALE, HAUTEUR*SCALE, SDL_WINDOW_SHOWN);
 	if (!window) {
 	    fprintf(stderr, "Pointeur windows NULL");
 		return 1;
