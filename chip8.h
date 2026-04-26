@@ -37,6 +37,6 @@ typedef struct {
 void init_emulator(chip8_t *console);
 uint16_t fetch(chip8_t *console);
 instruction_t decode(uint16_t opcode);
-
+void execute(instruction_t *instruction, chip8_t *console);
 
 #endif
