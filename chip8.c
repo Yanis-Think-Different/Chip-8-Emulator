@@ -16,6 +16,7 @@ void init_emulator(chip8_t *console){
     memset(console->display, 0x0, LARGEUR * HAUTEUR);
     memset(console->pile.tab, 0x0, 0x10);
     memset(console->V, 0x0, 0x10);
+    memset(console->keypad, 0x0, 0x10);
     console->V[0xF] = 0x0;
 
     // Chargement de la FONT
@@ -41,16 +42,16 @@ void init_emulator(chip8_t *console){
 }
 
 uint16_t fetch(chip8_t *console){
-    assert(console->program_counter <= MEMORY_SIZE - 1);
-    assert(console->program_counter % 2 == 0);
+    assert(console->program_counter <= MEMORY_SIZE - 0x1);
+    assert(console->program_counter % 0x2 == 0x0);
 
-    uint16_t instruction_final = 0;
+    uint16_t instruction_final = 0x0;
 
     uint16_t instruction1 = console->memory[console->program_counter];
     uint16_t instruction2 = console->memory[console->program_counter+1];
-    console->program_counter += 2;
+    console->program_counter += 0x2;
 
-    instruction_final = (instruction1 << 8) | instruction2;
+    instruction_final = (instruction1 << 0x8) | instruction2;
     return instruction_final;
 }
 
@@ -58,9 +59,9 @@ instruction_t decode(uint16_t opcode){
     instruction_t instruction;
 
     instruction.opcode = opcode;
-    instruction.type = (opcode >> 12);
-    instruction.x = (opcode & 0x0F00) >> 8;
-    instruction.y = (opcode & 0x00F0) >> 4;
+    instruction.type = (opcode >> 0xC);
+    instruction.x = (opcode & 0x0F00) >> 0x8;
+    instruction.y = (opcode & 0x00F0) >> 0x4;
     instruction.n = (opcode & 0x000F);
     instruction.nn = (opcode & 0x00FF);
     instruction.nnn = (opcode & 0x0FFF);
@@ -101,7 +102,7 @@ void execute(instruction_t *instruction, chip8_t *console) {
             break;
         case 0x5:
             if ((console->V[instruction->x] == console->V[instruction->y]) && (instruction->n == 0))
-                console->program_counter += 2;
+                console->program_counter += 0x2;
             break;
         case 0x6:
             console->V[instruction->x] = instruction->nn;
@@ -125,31 +126,31 @@ void execute(instruction_t *instruction, chip8_t *console) {
                     break;
                 case 0x4: {
                     uint16_t add = (uint16_t)console->V[instruction->x] + (uint16_t)console->V[instruction->y];
-                    console->V[0xF] = (add > 0xFF) ? 1 : 0;
+                    console->V[0xF] = (add > 0xFF) ? 0x1 : 0x0;
                     console->V[instruction->x] = (uint8_t)(add & 0xFF);
                     break;
                 }
                 case 0x5:
-                    console->V[0xF] = (console->V[instruction->x] > console->V[instruction->y]) ? 1 : 0;
+                    console->V[0xF] = (console->V[instruction->x] > console->V[instruction->y]) ? 0x1 : 0x0;
                     console->V[instruction->x] -= console->V[instruction->y];
                     break;
                 case 0x6:
                     console->V[0xF] = console->V[instruction->x] & 0x1;
-                    console->V[instruction->x] >>= 1;
+                    console->V[instruction->x] >>= 0x1;
                     break;
                 case 0x7:
-                    console->V[0xF] = (console->V[instruction->y] > console->V[instruction->x]) ? 1 : 0;
+                    console->V[0xF] = (console->V[instruction->y] > console->V[instruction->x]) ? 0x1 : 0x0;
                     console->V[instruction->x] = console->V[instruction->y] - console->V[instruction->x];
                     break;
                 case 0xE:
-                    console->V[0xF] = (console->V[instruction->x] >> 7) & 0x1;
-                    console->V[instruction->x] <<= 1;
+                    console->V[0xF] = (console->V[instruction->x] >> 0x7) & 0x1;
+                    console->V[instruction->x] <<= 0x1;
                     break;
             }
             break;
         case 0x9:
-            if ((console->V[instruction->x] != console->V[instruction->y]) && (instruction->n == 0))
-                console->program_counter += 2;
+            if ((console->V[instruction->x] != console->V[instruction->y]) && (instruction->n == 0x0))
+                console->program_counter += 0x2;
             break;
         case 0xA:
             console->index_register = instruction->nnn;
@@ -158,7 +159,7 @@ void execute(instruction_t *instruction, chip8_t *console) {
             console->program_counter = instruction->nnn + console->V[0x0];
             break;
         case 0xC:
-            console->V[instruction->x] = (rand() % 256) & instruction->nn;
+            console->V[instruction->x] = (rand() % 0x100) & instruction->nn;
             break;
         case 0xD: {
             uint8_t x_pos = console->V[instruction->x] % LARGEUR;
@@ -166,38 +167,49 @@ void execute(instruction_t *instruction, chip8_t *console) {
 
             console->V[0xF] = 0x0;
 
-            for (int i = 0x0; i < instruction->n; i++){
+            for (uint8_t i = 0x0; i < instruction->n; i++){
                 uint8_t sprite = console->memory[console->index_register + i];
-                for (int j = 0x0; j < 0x8; j++) {
+                for (uint8_t j = 0x0; j < 0x8; j++) {
                     uint8_t index = ((y_pos + i) * LARGEUR) + (x_pos + j);
                     uint8_t tmp = console->display[index];
                     console->display[index] ^= ((sprite >> (0x7-j)) & 0x1U);
                     if (tmp){
                         if (!console->display[index])
-                            console->V[0xF] = 1;
+                            console->V[0xF] = 0x1;
                     }
                 }
             }
-
             break;
         }
         case 0xE:
             switch(instruction->nn) {
                 case 0x9E:
+                    if (console->keypad[console->V[instruction->x]])
+                        console->program_counter += 2;
                     break;
                 case 0xA1:
+                    if (!console->keypad[console->V[instruction->x]])
+                        console->program_counter += 2;
                     break;
             }
             break;
-
         case 0xF:
             switch(instruction->nn) {
                 case 0x07:
                     console->V[instruction->x] = console->delay_timer;
                     break;
-                case 0x0A:
-                    // Wait for a key press
+                case 0x0A: {
+                    uint8_t flag = 0x0;
+                    for (uint8_t i = 0x0 ; i < 0x10; i++)
+                        if (console->keypad[i]){
+                            console->V[instruction->x] = i;
+                            flag = 0x1;
+                            break;
+                        }
+                    if (!flag)
+                        console->program_counter -= 2;
                     break;
+                }
                 case 0x15:
                     console->delay_timer = console->V[instruction->x];
                     break;
@@ -218,18 +230,15 @@ void execute(instruction_t *instruction, chip8_t *console) {
                     break;
                 }
                 case 0x55:
-                    for (int i = 0; i <= instruction->x; i++) {
+                    for (uint8_t i = 0x0; i <= instruction->x; i++)
                         console->memory[console->index_register + i] = console->V[i];
-                    }
                     break;
                 case 0x65:
-                    for (int i = 0; i <= instruction->x; i++) {
+                    for (uint8_t i = 0x0; i <= instruction->x; i++)
                         console->V[i] = console->memory[console->index_register + i];
-                    }
                     break;
             }
             break;
-
         default:
             break;
     }

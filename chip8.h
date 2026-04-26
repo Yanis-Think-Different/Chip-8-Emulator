@@ -21,6 +21,7 @@ typedef struct Chip8{
     uint8_t delay_timer;
     uint8_t sound_timer;
     uint8_t V[0x10];
+    uint8_t keypad[0x10];
 }chip8_t;
 
 typedef struct {
