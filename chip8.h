@@ -20,7 +20,7 @@ typedef struct Chip8{
     stack pile;
     uint8_t delay_timer;
     uint8_t sound_timer;
-    uint8_t variable[16];
+    uint8_t V[16];
 }chip8_t;
 
 typedef struct {
@@ -36,5 +36,6 @@ typedef struct {
 void init_emulator(chip8_t *console);
 uint16_t fetch(chip8_t *console);
 instruction_t decode(uint16_t opcode);
+
 
 #endif
