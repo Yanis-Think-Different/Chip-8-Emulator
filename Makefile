@@ -1,4 +1,4 @@
-COBJET = main.o display.o chip8.o keypad.o
+COBJET = main.o chip8.o 
 CC = gcc
 CFLAGS = -Wall -pedantic -std=c23 -g
 CBIBLIO = -lSDL2
